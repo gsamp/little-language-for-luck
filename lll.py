@@ -189,6 +189,42 @@ class Probability(Integrator):
     def compute(self, rv, condition, sampling):
         return self.integrate([rv.if_then_else(1, 0)], condition, sampling)[0]
 
+
+# BEGIN Georgia extension
+
+class BayesOnProbabilities(Integrator):
+    def __init__(self, likelihood, prior, normalization_constant):
+        self.likelihood = likelihood
+        self.prior = prior
+        self.normalization_constant = normalization_constant
+
+    def compute(self):
+        return self.likelihood * self.prior / self.normalization_constant
+
+class BayesOnEvents(Integrator):
+    def __init__(self, observed_event, unobserved_event):
+        self.observed_event = observed_event
+        self.unobserved_event = unobserved_event
+
+    def compute(self):
+        return Pr[self.unobserved_event : self.observed_event : 10000]
+
+'''
+TODO: implement me
+class LOTP(Integrator):
+    def __init__(self, ):
+        pass
+    def compute(self):
+        pass
+
+class Independence():
+    pass
+
+class ConditionalIndependence():
+    pass
+'''
+
+
 E = Expectation()
 Pr = Probability()
 Var = Variance()
@@ -236,10 +272,9 @@ if __name__ == '__main__':
     score = sum([c.binary_indicator() for c in captchas])
     is_flagged = (score < 5)
 
-    print('Robot flagged w/ prob', Pr[is_flagged :  is_robot])
-    print('Human flagged w/ prob', Pr[is_flagged : ~is_robot])
-    print('Flag is robot w/ prob', Pr[is_robot   :  is_flagged])
-
+    # print('Robot flagged w/ prob', Pr[is_flagged :  is_robot])
+    # print('Human flagged w/ prob', Pr[is_flagged : ~is_robot])
+    # print('Flag is robot w/ prob', Pr[is_robot   :  is_flagged])
 
     # A "standard" Bayes' Rule problem that I still have *no* intuition for...
     has_disease = ~ Bernoulli(0.01)
@@ -247,19 +282,26 @@ if __name__ == '__main__':
         ~ Bernoulli(0.99),
         ~ Bernoulli(0.01) # false positives!
     )
-    print(Pr[has_disease : test_positive : 100])
+    print("Kartik: ", Pr[has_disease : test_positive : 10000])
+
+    # BEGIN Georgia extension
+    
+    bayes = BayesOnEvents(test_positive, has_disease)
+    print("Georgia: ", bayes.compute())
+    
+    # END Georgia extension
 
     N  = ~ Uniform([6])
     d1 = ~ Die(N)
     d2 = ~ Die(N)
     s = d1 + d2
 
-    print(E[s], '+/-', Var[s] ** 0.5)
-    print(Pr[d1 > 5 : d1 > 1])
+    # print(E[s], '+/-', Var[s] ** 0.5)
+    # print(Pr[d1 > 5 : d1 > 1])
 
 
     # Does the central limit theorem hold for 100 coin tosses?
     S = sum([(~Bernoulli(0.5)).if_then_else(1, 0) for _ in range(100)])
     mu = E[S]
     sigma = Var[S] ** 0.5
-    print(Pr[(S - mu) / sigma > 1])
+    # print(Pr[(S - mu) / sigma > 1])
